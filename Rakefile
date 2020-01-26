@@ -59,6 +59,7 @@ end
 file "rhg.epub" => :epub_tree do |t|
   EPUB::Maker.archive BUILD, t.name
 end
+CLEAN.include "rhg.epub"
 
 directory "#{BUILD}/META-INF"
 
