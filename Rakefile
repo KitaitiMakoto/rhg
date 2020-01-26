@@ -3,7 +3,9 @@ require "open-uri"
 require "oga"
 require "epub/maker/task"
 
-def normalize_content_document(doc)
+def load_html(file_path)
+  content = File.read(file_path, mode: "rb", encoding: "ISO-2022-JP").encode("UTF-8", invalide: :replace, undef: :replace)
+  doc = Oga.parse_html(content)
   doc.doctype = nil
   html = doc.xpath("/html").first
   [
@@ -17,6 +19,7 @@ def normalize_content_document(doc)
   made = doc.css('link[rev]').first
   made.unset "rev"
   made.set "rel", "author"
+  doc
 end
 
 SRC = "src"
@@ -119,9 +122,7 @@ file "#{BUILD}/package.opf" => EPUB_FILES do |t|
 end
 
 file "#{BUILD}/OPS/index.xhtml" => "#{SRC}/index.html" do |t|
-  content = File.read(t.source, mode: "rb", encoding: "ISO-2022-JP").encode("UTF-8", invalide: :replace, undef: :replace)
-  doc = Oga.parse_html(content)
-  normalize_content_document doc
+  doc = load_html(t.source)
   body = Oga::XML::Element.new(name: "body")
   nav = Oga::XML::Element.new(name: "nav", attributes: [Oga::XML::Attribute.new(namespace_name: "epub", name: "type", value: "toc")])
   stack = [nav]
@@ -188,9 +189,7 @@ EPUB_FILES.each do |path|
 end
 
 rule %r|^#{BUILD}/OPS/.+\.xhtml| => "%{^#{BUILD}/OPS,#{SRC}}X.html" do |t|
-  content = File.read(t.source, mode: "rb", encoding: "ISO-2022-JP").encode("UTF-8", invalide: :replace, undef: :replace)
-  doc = Oga.parse_html(content)
-  normalize_content_document doc
+  doc = load_html(t.source)
   doc.instance_variable_set :@type, "xml" # FIXME
   File.write t.name, doc.to_xml
 end
