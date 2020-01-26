@@ -35,7 +35,7 @@ file :epubcheck => "rhg.epub" do |t|
   sh t.name, t.source
 end
 
-file "rhg.epub" => "#{BUILD}/META-INF/container.xml" do |t|
+file "rhg.epub" => :epub_tree do |t|
   EPUB::Maker.archive BUILD, t.name
 end
 
