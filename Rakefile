@@ -5,7 +5,25 @@ require "epub/maker/task"
 
 def load_html(file_path)
   content = File.read(file_path, mode: "rb", encoding: "ISO-2022-JP").encode("UTF-8", invalide: :replace, undef: :replace)
+
+  case file_path.pathmap("%n")
+  when "preface"
+    content.sub! /<p class="right"/, '<p class="right">'
+  when "gc"
+    content.sub! %r|しかも参照しているオブジェクト同士が近くに来るので</li>|, "しかも参照しているオブジェクト同士が近くに来るので<br>"
+  when "iterator"
+    content.sub! %r|<code>pcall</code>がある。</li>|, "<code>pcall</code>がある。<br>"
+    content.sub! /この引数は引数チェックの厳しさを変えるだけなのでどうでもいい。/, "この引数は引数チェックの厳しさを変えるだけなのでどうでもいい。<br>"
+  end
+
   doc = Oga.parse_html(content)
+
+  case file_path.pathmap("%n")
+  when "yacc"
+    title = doc.xpath("//title").first
+    title.inner_text = title.text
+  end
+
   doc.doctype = nil
   html = doc.xpath("/html").first
   [
