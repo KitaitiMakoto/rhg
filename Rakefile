@@ -1,0 +1,215 @@
+require "rake/clean"
+require "open-uri"
+require "oga"
+require "epub/maker/task"
+
+def normalize_content_document(doc)
+  doc.doctype = nil
+  html = doc.xpath("/html").first
+  [
+    [nil, "xmlns", "xhtml"],
+    ["xmlns", "epub", "epub"]
+  ].each do |(prefix, name, key)|
+    html.add_attribute Oga::XML::Attribute.new(namespace_name: prefix, name: name, value: EPUB::NAMESPACES[key])
+  end
+  doc.css('meta[http-equiv="Content-Type"]').first.set("content", "text/html; charset=utf-8")
+  doc.css('meta[http-equiv="Content-Language"]').first.remove
+  made = doc.css('link[rev]').first
+  made.unset "rev"
+  made.set "rel", "author"
+end
+
+SRC = "src"
+BUILD = "build"
+DEST = "RubyHackingGuide.epub"
+
+EPUB::Maker::Task.new DEST do |t|
+  
+end
+
+task :build_search_index do
+  
+end
+
+file :epubcheck => "rhg.epub" do |t|
+  sh t.name, t.source
+end
+
+file "rhg.epub" => "#{BUILD}/META-INF/container.xml" do |t|
+  EPUB::Maker.archive BUILD, t.name
+end
+
+directory "#{BUILD}/META-INF"
+
+EPUB_FILES = FileList["#{SRC}/**/*"].pathmap("%{^#{SRC},#{BUILD}/OPS}p").pathmap("%{\.html$,.xhtml}p")
+
+directory "#{BUILD}/OPS"
+
+desc "Build directory tree for building EPUB content files"
+multitask epub_tree: EPUB_FILES + ["#{BUILD}/META-INF/container.xml", "#{BUILD}/package.opf"]
+
+file "#{BUILD}/META-INF/container.xml" => ["#{BUILD}/package.opf", "#{BUILD}/META-INF"] do |t|
+  container = EPUB::OCF::Container.new
+  container.make_rootfile full_path: t.source.pathmap("%{^#{BUILD}/,}p")
+
+  File.write t.name, container.to_xml
+end
+
+file "#{BUILD}/package.opf" => EPUB_FILES do |t|
+  index = Oga.parse_xml(open("#{BUILD}/OPS/index.xhtml"))
+  title = index.xpath("//title").first.text
+  creator = index.css('a[href^="mailto"]').first.text.split(/\s+/).first
+  nav_file = "#{BUILD}/OPS/index.xhtml"
+
+  package = EPUB::Publication::Package.new
+
+  package.make_metadata do |metadata|
+    metadata.title = title
+    metadata.language = "ja"
+    metadata.creator = creator
+    modified = EPUB::Metadata::Meta.new.tap {|mod|
+      mod.property = "dcterms:modified"
+      mod.content = "2004-07-20T23:08:12Z"
+    }
+    metadata.metas << modified
+  end
+
+  manifest = package.make_manifest {|manifest|
+    EPUB_FILES.each do |file|
+      next unless File.file? file
+      href = file.pathmap("%{^#{BUILD}/,}p")
+      item_options = {
+        id: href.gsub(/[\/.]/, "-"),
+        href: href,
+        media_type: case file.pathmap("%x")
+                    when ".xhtml"
+                      "application/xhtml+xml"
+                    when ".css"
+                      "text/css"
+                    when ".jpg"
+                      "image/jpeg"
+                    end
+      }
+      if file == nav_file
+        item_options[:properties] = ["nav"]
+      end
+      manifest.make_item item_options
+    end
+  }
+
+  package.make_spine do |spine|
+    spine.make_itemref do |ir|
+      ir.item = manifest.nav
+      ir.linear = true
+    end
+    nav = EPUB::ContentDocument::Navigation.new
+    xml = EPUB::Parser::XMLDocument.new(File.read(nav_file))
+    nav.navigations = EPUB::Parser::ContentDocument.new(manifest.nav).parse_navigations(xml)
+    nav.toc.traverse do |item, _|
+      if item.item
+        spine.make_itemref do |ir|
+          ir.item = item.item
+          ir.linear = true
+        end
+      end
+    end
+  end
+
+  File.write t.name, package.to_xml
+end
+
+file "#{BUILD}/OPS/index.xhtml" => "#{SRC}/index.html" do |t|
+  content = File.read(t.source, mode: "rb", encoding: "ISO-2022-JP").encode("UTF-8", invalide: :replace, undef: :replace)
+  doc = Oga.parse_html(content)
+  normalize_content_document doc
+  body = Oga::XML::Element.new(name: "body")
+  nav = Oga::XML::Element.new(name: "nav", attributes: [Oga::XML::Attribute.new(namespace_name: "epub", name: "type", value: "toc")])
+  stack = [nav]
+  processing_toc = false
+  current_body = doc.xpath("/html/body").first
+  current_body.children.each do |node|
+    unless node.kind_of? Oga::XML::Element
+      body.children << node
+      next
+    end
+    if node.text == "目次"
+      processing_toc = true
+      body.children << nav
+      nav.children << node
+    end
+    if node.text == "ライセンスなど"
+      processing_toc = false
+    end
+    if processing_toc
+      case node.name
+      when "h2"
+        stack.last.children << node
+        ol = Oga::XML::Element.new(name: "ol")
+        stack.last.children << ol
+        stack << ol
+      when "h3"
+        stack.push node
+      when "ul"
+        li = Oga::XML::Element.new(name: "li")
+        if stack.last.name == "h3"
+          h3 = stack.pop
+          h3.name = "span"
+          li.children << h3
+        else
+          # FIXME
+          span = Oga::XML::Element.new(name: "span")
+          span.inner_text = "()"
+          li.children << span
+        end
+        node.name = "ol"
+        li.children << node
+        stack.last.children << li
+      end
+    else
+      body.children << node
+    end
+  end
+  current_body.remove
+  doc.xpath("/html").first.children << body
+  doc.xpath("//a").each do |a|
+    a["href"] = a["href"].sub(/\.html\z/, ".xhtml")
+  end
+  doc.instance_variable_set :@type, "xml" # FIXME
+  File.write t.name, doc.to_xml
+end
+
+EPUB_FILES.each do |path|
+  src = path.pathmap("%{^#{BUILD}/OPS,#{SRC}}p").pathmap("%{\.xhtml,.html}p")
+  dir = path.pathmap("%d")
+  if File.file? src
+    directory dir
+    file path => dir
+  end
+end
+
+rule %r|^#{BUILD}/OPS/.+\.xhtml| => "%{^#{BUILD}/OPS,#{SRC}}X.html" do |t|
+  content = File.read(t.source, mode: "rb", encoding: "ISO-2022-JP").encode("UTF-8", invalide: :replace, undef: :replace)
+  doc = Oga.parse_html(content)
+  normalize_content_document doc
+  doc.instance_variable_set :@type, "xml" # FIXME
+  File.write t.name, doc.to_xml
+end
+rule %r|^#{BUILD}/OPS/.+\.css| => "%{^#{BUILD}/OPS,#{SRC}}X.css" do |t|
+  content = File.read(t.source, mode: "rb", encoding: "ISO-2022-JP").encode("UTF-8", invalide: :replace, undef: :replace)
+  File.write t.name, content
+end
+rule %r|^#{BUILD}/OPS/.+\.jpg| => "%{^#{BUILD}/OPS,#{SRC}}X.jpg" do |t|
+  copy t.source, t.name
+end
+directory BUILD
+CLEAN.include BUILD
+
+file "#{SRC}/index.html" => ["RubyHackingGuide.tar.gz", SRC] do |t|
+  sh "tar", "xsfv", t.source, "-C", SRC, "--strip", "1"
+end
+directory SRC
+CLOBBER.include SRC
+
+file "RubyHackingGuide.tar.gz" do |t|
+  File.write t.name, URI("http://i.loveruby.net/ja/rhg/ar/RubyHackingGuide.tar.gz").read
+end
