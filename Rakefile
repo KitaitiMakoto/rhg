@@ -79,10 +79,10 @@ file "#{BUILD}/META-INF/container.xml" => ["#{BUILD}/package.opf", "#{BUILD}/MET
 end
 
 file "#{BUILD}/package.opf" => EPUB_FILES do |t|
-  index = Oga.parse_xml(open("#{BUILD}/OPS/index.xhtml"))
+  nav_file = "#{BUILD}/OPS/index.xhtml"
+  index = Oga.parse_xml(open(nav_file))
   title = index.xpath("//title").first.text
   creator = index.css('a[href^="mailto"]').first.text.split(/\s+/).first
-  nav_file = "#{BUILD}/OPS/index.xhtml"
 
   package = EPUB::Publication::Package.new
 
