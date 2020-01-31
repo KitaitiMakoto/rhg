@@ -92,11 +92,7 @@ file "#{BUILD}/package.opf" => EPUB_FILES do |t|
     metadata.title = title
     metadata.language = "ja"
     metadata.creator = creator
-    modified = EPUB::Metadata::Meta.new.tap {|mod|
-      mod.property = "dcterms:modified"
-      mod.content = "2004-07-20T23:08:12Z"
-    }
-    metadata.metas << modified
+    metadata.modified = "2004-07-20T23:08:12Z"
   end
 
   manifest = package.make_manifest {|manifest|
