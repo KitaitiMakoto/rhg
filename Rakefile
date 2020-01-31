@@ -3,6 +3,8 @@ require "open-uri"
 require "oga"
 require "epub/maker/task"
 
+EPUB::Parser::XMLDocument.backend = :Oga
+
 # TODO: Modify CSS to style index.xhtml
 def load_html(file_path)
   content = File.read(file_path, mode: "rb", encoding: "ISO-2022-JP").encode("UTF-8", invalide: :replace, undef: :replace)
