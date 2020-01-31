@@ -101,15 +101,7 @@ file "#{BUILD}/package.opf" => EPUB_FILES do |t|
       href = file.pathmap("%{^#{BUILD}/,}p")
       item_options = {
         id: href.gsub(/[\/.]/, "-"),
-        href: href,
-        media_type: case file.pathmap("%x")
-                    when ".xhtml"
-                      "application/xhtml+xml"
-                    when ".css"
-                      "text/css"
-                    when ".jpg"
-                      "image/jpeg"
-                    end
+        href: href
       }
       if file == nav_file
         item_options[:properties] = ["nav"]
