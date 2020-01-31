@@ -128,8 +128,7 @@ file "#{BUILD}/package.opf" => EPUB_FILES do |t|
       ir.linear = true
     end
     nav = EPUB::ContentDocument::Navigation.new
-    xml = EPUB::Parser::XMLDocument.new(File.read(nav_file))
-    nav.navigations = EPUB::Parser::ContentDocument.new(manifest.nav).parse_navigations(xml)
+    nav.navigations = EPUB::Parser::ContentDocument.new(manifest.nav).parse_navigations(index)
     nav.toc.traverse do |item, _|
       if item.item
         spine.make_itemref do |ir|
