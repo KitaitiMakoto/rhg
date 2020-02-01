@@ -46,7 +46,7 @@ end
 SRC_URI = URI("http://i.loveruby.net/ja/rhg/ar/RubyHackingGuide.tar.gz")
 SRC = "src"
 BUILD = "build"
-DEST = "RubyHackingGuide.epub"
+DEST = SRC_URI.to_s.pathmap("%n").ext(".epub")
 
 EPUB::Maker::Task.new DEST do |t|
   
@@ -56,11 +56,11 @@ task :build_search_index do
   
 end
 
-file :epubcheck => "rhg.epub" do |t|
+file :epubcheck => DEST do |t|
   sh t.name, t.source
 end
 
-file "rhg.epub" => :epub_tree do |t|
+file DEST => :epub_tree do |t|
   EPUB::Maker.archive BUILD, t.name
 end
 CLEAN.include "rhg.epub"
