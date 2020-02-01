@@ -43,6 +43,7 @@ def load_html(file_path)
   doc
 end
 
+SRC_URI = URI("http://i.loveruby.net/ja/rhg/ar/RubyHackingGuide.tar.gz")
 SRC = "src"
 BUILD = "build"
 DEST = "RubyHackingGuide.epub"
@@ -219,5 +220,5 @@ directory SRC
 CLOBBER.include SRC
 
 file "RubyHackingGuide.tar.gz" do |t|
-  File.write t.name, URI("http://i.loveruby.net/ja/rhg/ar/RubyHackingGuide.tar.gz").read
+  File.write t.name, SRC_URI.read
 end
