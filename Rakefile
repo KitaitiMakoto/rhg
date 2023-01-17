@@ -2,7 +2,7 @@ require "rake/clean"
 require "open-uri"
 require "oga"
 require "zlib"
-require "archive/tar/minitar"
+require "rubygems/package"
 require "epub/maker/task"
 
 EPUB::Parser::XMLDocument.backend = :Oga
@@ -216,14 +216,12 @@ directory BUILD
 CLEAN.include BUILD
 
 file "#{SRC}/index.html" => "RubyHackingGuide.tar.gz" do |t|
-  Archive::Tar::Minitar::Reader.open(Zlib::GzipReader.new(File.open(t.source))) do |stream|
-    stream.each_entry do |entry|
-      next if entry.directory?
-      base = entry.name.pathmap("%1d")
-      path = entry.name.pathmap("%{^#{base},#{SRC}}p")
-      dir = mkpath(File.dirname(path)) unless File.exist?(File.dirname(path))
-      File.write path, entry.read
-    end
+  Gem::Package::TarReader.new(Zlib::GzipReader.new(File.open(t.source))).each do |entry|
+    next unless entry.file?
+    base = entry.full_name.pathmap("%1d")
+    path = entry.full_name.pathmap("%{^#{base},#{SRC}}p")
+    dir = mkpath(File.dirname(path)) unless File.exist?(File.dirname(path))
+    File.write path, entry.read
   end
 end
 directory SRC
