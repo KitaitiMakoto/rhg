@@ -1,11 +1,37 @@
 require "rake/clean"
-require "open-uri"
 require "oga"
 require "zlib"
 require "rubygems/package"
 require "epub/maker/task"
 
 EPUB::Parser::XMLDocument.backend = :Oga
+
+require "open-uri"
+class DownloadTask < Rake::TaskLib
+  def initialize(uri)
+    if uri.kind_of?(Hash)
+      @to = uri.keys.first
+      @uri = URI(uri.values.first)
+    else
+      @uri = URI(uri)
+      @to = @uri.path.pathmap("%f")
+    end
+    define
+  end
+
+  private
+
+  def define
+    desc "Download from #{@uri}"
+    file @to do |t|
+      File.write t.name, @uri.read
+    end
+  end
+end
+
+def download(args)
+  DownloadTask.new args
+end
 
 # TODO: Modify CSS to style index.xhtml
 def load_html(file_path)
@@ -227,6 +253,4 @@ end
 directory SRC
 CLOBBER.include SRC
 
-file "RubyHackingGuide.tar.gz" do |t|
-  File.write t.name, SRC_URI.read
-end
+download "RubyHackingGuide.tar.gz" => SRC_URI
