@@ -65,7 +65,7 @@ end
 file DEST => :epub_tree do |t|
   EPUB::Maker.archive BUILD, t.name
 end
-CLEAN.include "rhg.epub"
+CLEAN.include DEST
 
 directory "#{BUILD}/META-INF"
 
