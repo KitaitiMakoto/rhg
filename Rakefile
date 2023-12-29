@@ -76,14 +76,6 @@ SRC = "src"
 BUILD = "build"
 DEST = SRC_URI.to_s.pathmap("%n").ext(".epub")
 
-EPUB::Maker::Task.new DEST do |t|
-  
-end
-
-task :build_search_index do
-  
-end
-
 file :epubcheck => DEST do |t|
   sh t.name, t.source
 end
