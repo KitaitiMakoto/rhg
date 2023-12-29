@@ -81,6 +81,7 @@ task :epubcheck => DEST do |t|
   sh t.name, t.source
 end
 
+desc "Build EPUB file"
 file DEST => :epub_tree do |t|
   EPUB::Maker.archive BUILD, t.name
 end
