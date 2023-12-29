@@ -76,7 +76,8 @@ SRC = "src"
 BUILD = "build"
 DEST = SRC_URI.to_s.pathmap("%n").ext(".epub")
 
-file :epubcheck => DEST do |t|
+desc "Run epubcheck"
+task :epubcheck => DEST do |t|
   sh t.name, t.source
 end
 
