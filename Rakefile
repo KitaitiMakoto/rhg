@@ -238,7 +238,8 @@ file "#{SRC}/index.html" => "RubyHackingGuide.tar.gz" do |t|
     next unless entry.file?
     base = entry.full_name.pathmap("%1d")
     path = entry.full_name.pathmap("%{^#{base},#{SRC}}p")
-    dir = mkpath(File.dirname(path)) unless File.exist?(File.dirname(path))
+    dir = path.pathmap("%d")
+    mkpath(dir) unless File.exist?(dir)
     File.write path, entry.read
   end
 end
