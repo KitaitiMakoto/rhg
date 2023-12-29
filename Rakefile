@@ -235,6 +235,9 @@ end
 directory BUILD
 CLEAN.include BUILD
 
+desc "Extract source files"
+task :source => "#{SRC}/index.html"
+
 file "#{SRC}/index.html" => "RubyHackingGuide.tar.gz" do |t|
   Gem::Package::TarReader.new(Zlib::GzipReader.new(File.open(t.source))).each do |entry|
     next unless entry.file?
