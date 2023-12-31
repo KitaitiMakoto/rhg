@@ -205,7 +205,7 @@ file "rakelib/build.rake" => ["RubyHackingGuide.tar.gz", "rakelib"] do |t|
       end
 
       manifest = package.make_manifest {|manifest|
-        EPUB_FILES.each do |file|
+        t.sources.each do |file|
           next unless File.file? file
           href = file.pathmap("%{^#{BUILD}/,}p")
           item_options = {
