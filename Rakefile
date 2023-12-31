@@ -246,8 +246,8 @@ file "rakelib/build.rake" => ["RubyHackingGuide.tar.gz", "rakelib"] do |t|
 
     EPUB_FILES.each do |path|
       src = path.pathmap("%{^#{BUILD}/OPS,#{SRC}}p").pathmap("%{\.xhtml,.html}p")
-      dir = path.pathmap("%d")
       if File.file? src
+        dir = path.pathmap("%d")
         directory dir
         file path => dir
       end
