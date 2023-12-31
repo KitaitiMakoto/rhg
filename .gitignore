@@ -2,3 +2,4 @@ build/
 src/
 RubyHackingGuide.tar.gz
 RubyHackingGuide.epub
+rakelib/build.rake
