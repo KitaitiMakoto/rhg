@@ -72,6 +72,56 @@ def load_html(file_path)
   doc
 end
 
+def build_package_file(t)
+  nav_file = "#{BUILD}/OPS/index.xhtml"
+  index = Oga.parse_xml(open(nav_file))
+  title = index.xpath("//title").first.text
+  creator = index.css('a[href^="mailto"]').first.text.split(/\s+/).first
+
+  package = EPUB::Publication::Package.new
+
+  package.make_metadata do |metadata|
+    metadata.title = title
+    metadata.language = "ja"
+    metadata.creator = creator
+    metadata.modified = "2004-07-20T23:08:12Z"
+  end
+
+  manifest = package.make_manifest {|manifest|
+    t.sources.each do |file|
+      next unless File.file? file
+      href = file.pathmap("%{^#{BUILD}/,}p")
+      item_options = {
+        id: href.gsub(/[\/.]/, "-"),
+        href: href
+      }
+      if file == nav_file
+        item_options[:properties] = ["nav"]
+      end
+      manifest.make_item item_options
+    end
+  }
+
+  package.make_spine do |spine|
+    spine.make_itemref do |ir|
+      ir.item = manifest.nav
+      ir.linear = true
+    end
+    nav = EPUB::ContentDocument::Navigation.new
+    nav.navigations = EPUB::Parser::ContentDocument.new(manifest.nav).parse_navigations(index)
+    nav.toc.traverse do |item, _|
+      if item.item
+        spine.make_itemref do |ir|
+          ir.item = item.item
+          ir.linear = true
+        end
+      end
+    end
+  end
+
+  File.write t.name, package.to_xml
+end
+
 SRC_URI = URI("http://i.loveruby.net/ja/rhg/ar/RubyHackingGuide.tar.gz")
 SRC = "src"
 BUILD = "build"
@@ -185,61 +235,13 @@ file "rakelib/build.rake" => ["RubyHackingGuide.tar.gz", "rakelib"] do |t|
   end
 
   rakefile = <<~RAKEFILE
-    require "epub/maker"
-
     EPUB_FILES = FileList["#{SRC}/**/*"].pathmap("%{^#{SRC},#{BUILD}/OPS}p").pathmap("%{\.html$,.xhtml}p")
 
     desc "Build directory tree for building EPUB content files"
     multitask epub_tree: EPUB_FILES + ["#{BUILD}/META-INF/container.xml", "#{BUILD}/package.opf"]
 
     file "#{BUILD}/package.opf" => EPUB_FILES do |t|
-      nav_file = "#{BUILD}/OPS/index.xhtml"
-      index = Oga.parse_xml(open(nav_file))
-      title = index.xpath("//title").first.text
-      creator = index.css('a[href^="mailto"]').first.text.split(/\s+/).first
-
-      package = EPUB::Publication::Package.new
-
-      package.make_metadata do |metadata|
-        metadata.title = title
-        metadata.language = "ja"
-        metadata.creator = creator
-        metadata.modified = "2004-07-20T23:08:12Z"
-      end
-
-      manifest = package.make_manifest {|manifest|
-        t.sources.each do |file|
-          next unless File.file? file
-          href = file.pathmap("%{^#{BUILD}/,}p")
-          item_options = {
-            id: href.gsub(/[\\\/.]/, "-"),
-            href: href
-          }
-          if file == nav_file
-            item_options[:properties] = ["nav"]
-          end
-          manifest.make_item item_options
-        end
-      }
-
-      package.make_spine do |spine|
-        spine.make_itemref do |ir|
-          ir.item = manifest.nav
-          ir.linear = true
-        end
-        nav = EPUB::ContentDocument::Navigation.new
-        nav.navigations = EPUB::Parser::ContentDocument.new(manifest.nav).parse_navigations(index)
-        nav.toc.traverse do |item, _|
-          if item.item
-            spine.make_itemref do |ir|
-              ir.item = item.item
-              ir.linear = true
-            end
-          end
-        end
-      end
-
-      File.write t.name, package.to_xml
+      build_package_file t
     end
 
     EPUB_FILES.each do |path|
