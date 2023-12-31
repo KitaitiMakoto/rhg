@@ -72,7 +72,7 @@ def load_html(file_path)
   doc
 end
 
-def build_package_file(t)
+def build_package_file(sources)
   nav_file = "#{BUILD}/OPS/index.xhtml"
   index = Oga.parse_xml(open(nav_file))
   title = index.xpath("//title").first.text
@@ -88,7 +88,7 @@ def build_package_file(t)
   end
 
   manifest = package.make_manifest {|manifest|
-    t.sources.each do |file|
+    sources.each do |file|
       next unless File.file? file
       href = file.pathmap("%{^#{BUILD}/,}p")
       item_options = {
@@ -119,7 +119,7 @@ def build_package_file(t)
     end
   end
 
-  File.write t.name, package.to_xml
+  package.to_xml
 end
 
 SRC_URI = URI("http://i.loveruby.net/ja/rhg/ar/RubyHackingGuide.tar.gz")
@@ -232,7 +232,7 @@ file "rakelib/build.rake" => [SRC, "rakelib"] do |t|
     multitask epub_tree: EPUB_FILES + ["#{BUILD}/META-INF/container.xml", "#{BUILD}/package.opf"]
 
     file "#{BUILD}/package.opf" => EPUB_FILES do |t|
-      build_package_file t
+      File.write t.name, build_package_file(t.sources)
     end
 
     EPUB_FILES.each do |path|
