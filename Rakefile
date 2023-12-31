@@ -225,7 +225,7 @@ directory BUILD
 CLEAN.include BUILD
 
 file "rakelib/build.rake" => [SRC, "rakelib"] do |t|
-  rakefile = <<~RAKEFILE
+  rakefile = <<~'RAKEFILE'
     EPUB_FILES = FileList["#{SRC}/**/*"].pathmap("%{^#{SRC},#{BUILD}/OPS}p").pathmap("%{\.html$,.xhtml}p")
 
     desc "Build directory tree for building EPUB content files"
