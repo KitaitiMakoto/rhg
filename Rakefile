@@ -140,6 +140,9 @@ file DEST => :epub_tree do |t|
 end
 CLEAN.include DEST
 
+desc "Build directory tree for building EPUB content files"
+multitask epub_tree: "#{BUILD}/META-INF/container.xml"
+
 directory "#{BUILD}/META-INF"
 
 directory "#{BUILD}/OPS"
@@ -227,9 +230,6 @@ CLEAN.include BUILD
 file "rakelib/build.rake" => [SRC, "rakelib"] do |t|
   rakefile = <<~'RAKEFILE'
     EPUB_FILES = FileList["#{SRC}/**/*"].pathmap("%{^#{SRC},#{BUILD}/OPS}p").pathmap("%{\.html$,.xhtml}p")
-
-    desc "Build directory tree for building EPUB content files"
-    multitask epub_tree: EPUB_FILES + ["#{BUILD}/META-INF/container.xml", "#{BUILD}/package.opf"]
 
     file "#{BUILD}/package.opf" => EPUB_FILES do |t|
       File.write t.name, build_package_file(t.sources)
