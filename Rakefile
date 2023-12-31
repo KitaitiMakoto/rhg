@@ -2,10 +2,11 @@ require "rake/clean"
 require "oga"
 require "zlib"
 require "rubygems/package"
-require "epub/maker/task"
+require "epub/maker"
 
 EPUB::Parser::XMLDocument.backend = :Oga
 
+require "rake/tasklib"
 require "open-uri"
 class DownloadTask < Rake::TaskLib
   def initialize(uri)
