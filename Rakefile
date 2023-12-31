@@ -224,16 +224,7 @@ end
 directory BUILD
 CLEAN.include BUILD
 
-file "rakelib/build.rake" => ["RubyHackingGuide.tar.gz", "rakelib"] do |t|
-  Gem::Package::TarReader.new(Zlib::GzipReader.new(File.open(t.source))).each do |entry|
-    next unless entry.file?
-    base = entry.full_name.pathmap("%1d")
-    path = entry.full_name.pathmap("%{^#{base},#{SRC}}p")
-    dir = path.pathmap("%d")
-    mkpath(dir) unless File.exist?(dir)
-    File.write path, entry.read
-  end
-
+file "rakelib/build.rake" => [SRC, "rakelib"] do |t|
   rakefile = <<~RAKEFILE
     EPUB_FILES = FileList["#{SRC}/**/*"].pathmap("%{^#{SRC},#{BUILD}/OPS}p").pathmap("%{\.html$,.xhtml}p")
 
@@ -261,7 +252,16 @@ directory "rakelib"
 import "rakelib/build.rake"
 CLEAN.include "rakelib/build.rake"
 
-directory SRC
+directory SRC => "RubyHackingGuide.tar.gz" do |t|
+  Gem::Package::TarReader.new(Zlib::GzipReader.new(File.open(t.source))).each do |entry|
+    next unless entry.file?
+    base = entry.full_name.pathmap("%1d")
+    path = entry.full_name.pathmap("%{^#{base},#{t.name}}p")
+    dir = path.pathmap("%d")
+    mkpath(dir) unless File.exist?(dir)
+    File.write path, entry.read
+  end
+end
 CLEAN.include SRC
 
 download "RubyHackingGuide.tar.gz" => SRC_URI
