@@ -152,6 +152,13 @@ file "#{BUILD}/OPS/index.xhtml" => "#{SRC}/index.html" do |t|
   File.write t.name, doc.to_xml
 end
 
+file "#{BUILD}/META-INF/container.xml" => ["#{BUILD}/package.opf", "#{BUILD}/META-INF"] do |t|
+  container = EPUB::OCF::Container.new
+  container.make_rootfile full_path: t.source.pathmap("%{^#{BUILD}/,}p")
+
+  File.write t.name, container.to_xml
+end
+
 rule %r|^#{BUILD}/OPS/.+\.xhtml| => "%{^#{BUILD}/OPS,#{SRC}}X.html" do |t|
   doc = load_html(t.source)
   doc.instance_variable_set :@type, "xml" # FIXME
@@ -184,13 +191,6 @@ file "rakelib/build.rake" => ["RubyHackingGuide.tar.gz", "rakelib"] do |t|
 
     desc "Build directory tree for building EPUB content files"
     multitask epub_tree: EPUB_FILES + ["#{BUILD}/META-INF/container.xml", "#{BUILD}/package.opf"]
-
-    file "#{BUILD}/META-INF/container.xml" => ["#{BUILD}/package.opf", "#{BUILD}/META-INF"] do |t|
-      container = EPUB::OCF::Container.new
-      container.make_rootfile full_path: t.source.pathmap("%{^#{BUILD}/,}p")
-
-      File.write t.name, container.to_xml
-    end
 
     file "#{BUILD}/package.opf" => EPUB_FILES do |t|
       nav_file = "#{BUILD}/OPS/index.xhtml"
