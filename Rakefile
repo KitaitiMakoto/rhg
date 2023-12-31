@@ -257,7 +257,7 @@ import "rakelib/build.rake"
 CLEAN.include "rakelib/build.rake"
 
 directory SRC
-CLOBBER.include SRC
+CLEAN.include SRC
 
 download "RubyHackingGuide.tar.gz" => SRC_URI
 CLOBBER.include "RubyHackingGuide.tar.gz"
